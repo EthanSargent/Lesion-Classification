@@ -196,9 +196,8 @@ def test_model(model, criterion):
 # # 1_1 VGG-19
 # Here we replace the fully-connected layer of a VGG-19 with two output neurons for binary classification. To combat the class imbalance, we penalize misclassifications in the positive class with a weighting of $6$.
 
-def 1_1(num_epochs=25, chunks=9):
+def model1_1(num_epochs=25, chunks=9):
     model = models.vgg19(pretrained=False)
-    model = model.cuda()
 
     for param in model.parameters():
         param.requires_grad = False
@@ -206,22 +205,19 @@ def 1_1(num_epochs=25, chunks=9):
     in_features = model.classifier[-1].in_features
 
     model.classifier[6] = nn.Linear(in_features, 2)                   
+    model = model.cuda()
 
     criterion = nn.CrossEntropyLoss(weight=torch.Tensor([1,6]).to(device))
     optimizer = optim.SGD(model.parameters(), lr=0.001, momentum=0.9)
     exp_lr_scheduler = lr_scheduler.StepLR(optimizer, step_size=7, gamma=0.1)
-    
-    train_model(model, criterion, optimizer, scheduler, num_epochs=num_epochs, chunks=chunks):
-    torch.save(model, 'models/1_1.pt')
 
-    all_outputs, all_labels = test_model(model, nn.CrossEntropyLoss())
-    summarize(all_outputs, all_labels)
-# In[ ]:
+    train_model(model, criterion, optimizer, exp_lr_scheduler, num_epochs=num_epochs, chunks=chunks)
+    torch.save(model, 'models/1_1.pt')
 
 # # 1_2 VGG-19
 # Here we play around with unfreezing more of the network with the hope of extracting lower-level lesion features.
 
-def 1_2(num_epochs=25, chunks=9):
+def model1_2(num_epochs=25, chunks=9):
     model = models.vgg19(pretrained=False)
 
     for param in model.parameters():
@@ -236,7 +232,7 @@ def 1_2(num_epochs=25, chunks=9):
     optimizer = optim.SGD(model.parameters(), lr=0.001, momentum=0.9)
     exp_lr_scheduler = lr_scheduler.StepLR(optimizer, step_size=7, gamma=0.1)
 
-    train_model(model, criterion, optimizer, scheduler, num_epochs=num_epochs, chunks=chunks):
+    train_model(model, criterion, optimizer, exp_lr_scheduler, num_epochs=num_epochs, chunks=chunks)
     torch.save(model, 'models/1_2.pt')
 # In[8]:
 
@@ -244,8 +240,8 @@ def 1_2(num_epochs=25, chunks=9):
 # Here, we switch to the Adam optimizer.
 
 # In[15]:
-def 1_3(num_epochs=25, chunks=9):
-    printing("ADAM ")
+def model1_3(num_epochs=25, chunks=9):
+    print("ADAM ")
     model = models.vgg19(pretrained=False)
 
     for param in model.parameters():
@@ -269,7 +265,7 @@ def 1_3(num_epochs=25, chunks=9):
 
 # 1_4 VGG-19
 # Instead of adding a classifier on top of VGG-19, here we unfreeze more of its existing layers.
-def 1_4(num_epochs=25, chunks=9):
+def model1_4(num_epochs=25, chunks=9):
     model = models.vgg19(pretrained=False)
 
     for param in model.parameters():
@@ -284,11 +280,34 @@ def 1_4(num_epochs=25, chunks=9):
     criterion = nn.CrossEntropyLoss(weight=torch.Tensor([1,5.5]).to(device))
     optimizer = optim.Adam(model.parameters())
     
-    for i in range(3,7):
+    for i in range(4,7):
         for parameter in model.classifier[i].parameters():
             parameter.requires_grad = True
 
     train_model(model, criterion, optimizer, num_epochs=num_epochs, chunks=chunks)
     torch.save(model, 'models/1_4.pt')
+    
+def model1_5(num_epochs=25, chunks=9):
+    model = models.vgg19(pretrained=False)
 
-# 
+    for param in model.parameters():
+        param.requires_grad = False
+        
+    in_features = model.classifier[-1].in_features
+
+    model.classifier[6] = nn.Linear(in_features, 2)                   
+    model = model.cuda()
+
+    criterion = nn.CrossEntropyLoss(weight=torch.Tensor([1,6]).to(device))
+    optimizer = optim.SGD(model.parameters(), lr=0.05, momentum=0.9)
+    exp_lr_scheduler = lr_scheduler.StepLR(optimizer, step_size=4, gamma=0.1)
+
+    train_model(model, criterion, optimizer, exp_lr_scheduler, num_epochs=num_epochs, chunks=chunks)
+    torch.save(model, 'models/1_5.pt')
+
+#
+model1_1(num_epochs=25, chunks=9)
+model1_5(num_epochs=25, chunks=9)
+# model1_3(num_epochs=25, chunks=9)
+# model1_4(num_epochs=25, chunks=9)
+
