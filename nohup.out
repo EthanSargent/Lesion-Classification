@@ -1,0 +1,26 @@
+Epoch 1/25
+----------
+train Loss: 91.7241 Acc: 0.5818
+val Loss: 12.0811 Acc: 0.7977
+Epoch 2/25
+----------
+Traceback (most recent call last):
+  File "trainer.py", line 291, in <module>
+    model1_1(num_epochs=25, chunks=9)
+  File "trainer.py", line 214, in model1_1
+    train_model(model, criterion, optimizer, exp_lr_scheduler, num_epochs=num_epochs, chunks=chunks)
+  File "trainer.py", line 63, in train_model
+    outputs = model(inputs)
+  File "/home/paperspace/.local/lib/python3.7/site-packages/torch/nn/modules/module.py", line 493, in __call__
+    result = self.forward(*input, **kwargs)
+  File "/home/paperspace/.local/lib/python3.7/site-packages/torchvision/models/vgg.py", line 42, in forward
+    x = self.features(x)
+  File "/home/paperspace/.local/lib/python3.7/site-packages/torch/nn/modules/module.py", line 493, in __call__
+    result = self.forward(*input, **kwargs)
+  File "/home/paperspace/.local/lib/python3.7/site-packages/torch/nn/modules/container.py", line 92, in forward
+    input = module(input)
+  File "/home/paperspace/.local/lib/python3.7/site-packages/torch/nn/modules/module.py", line 493, in __call__
+    result = self.forward(*input, **kwargs)
+  File "/home/paperspace/.local/lib/python3.7/site-packages/torch/nn/modules/conv.py", line 338, in forward
+    self.padding, self.dilation, self.groups)
+RuntimeError: CUDA out of memory. Tried to allocate 1024.00 MiB (GPU 0; 7.93 GiB total capacity; 2.09 GiB already allocated; 807.31 MiB free; 621.96 MiB cached)
