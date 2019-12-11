@@ -25,7 +25,9 @@ use_cuda = torch.cuda.is_available()
 device = torch.device("cuda:0" if use_cuda else "cpu")
 # In[2]:
 
-def train_model(model, criterion, optimizer, scheduler=None, num_epochs=25, chunks=9,               debug=False):
+def train_model(model, criterion, optimizer, scheduler=None, num_epochs=25, chunks=9,\
+               batch_normalize=False, weighted_sampler=False, data_dir='data', debug=False,\
+               checkpoints=False):
     since = time.time()
 
     best_model_wts = copy.deepcopy(model.state_dict())
@@ -34,6 +36,8 @@ def train_model(model, criterion, optimizer, scheduler=None, num_epochs=25, chun
     for epoch in range(num_epochs):
         print('Epoch {}/{}'.format(epoch+1, num_epochs))
         print('-' * 10)
+        if checkpoints and epoch%10==0:
+            torch.save(model, 'models/1_7_' + str(epoch) + '.pt')
 
         # Each epoch has a training and validation phase
         for phase in ['train', 'val']:
@@ -47,9 +51,15 @@ def train_model(model, criterion, optimizer, scheduler=None, num_epochs=25, chun
 
             # Iterate over data.
             for chunk in range(chunks):
-                X, Y = torch.load('data/images-' + str(chunk) + '.pt'),                       torch.load('data/labels-' + str(chunk) + '.pt')
+                X, Y = torch.load(data_dir + '/images-' + str(chunk) + '.pt'),\
+                       torch.load(data_dir + '/labels-' + str(chunk) + '.pt')
                 train = data_utils.TensorDataset(X, Y)
-                train_loader = data_utils.DataLoader(train, batch_size=64, shuffle=True)
+                if weighted_sampler:
+                    weights = Y.type('torch.FloatTensor')*7.48 + 1
+                    sampler = data_utils.sampler.WeightedRandomSampler(weights,len(weights),replacement=True)
+                    train_loader = data_utils.DataLoader(train, batch_size=64, sampler=sampler)
+                else:
+                    train_loader = data_utils.DataLoader(train, batch_size=64, shuffle=True)
             
                 for inputs, labels in train_loader:
                     inputs = inputs.to(device)
@@ -305,9 +315,28 @@ def model1_5(num_epochs=25, chunks=9):
     train_model(model, criterion, optimizer, exp_lr_scheduler, num_epochs=num_epochs, chunks=chunks)
     torch.save(model, 'models/1_5.pt')
 
-#
-model1_1(num_epochs=25, chunks=9)
-model1_5(num_epochs=25, chunks=9)
-# model1_3(num_epochs=25, chunks=9)
-# model1_4(num_epochs=25, chunks=9)
+
+def model1_7(num_epochs=25, chunks=9):
+    model = models.densenet161(pretrained=True)
+
+    for param in model.parameters():
+        param.requires_grad = False
+
+    for param in model.features.denseblock4.parameters():
+        param.requires_grad = True
+
+    in_features = model.classifier.in_features
+    model.classifier = nn.Linear(in_features, 2)
+
+    model = model.cuda()
+    
+    criterion = nn.CrossEntropyLoss().to(device)
+    optimizer = optim.Adam(model.parameters())
+
+    train_model(model, criterion, optimizer, num_epochs=num_epochs, chunks=chunks,\
+            weighted_sampler=True, data_dir='expanded_data', checkpoints=True)
+    torch.save(model, 'models/1_7.pt')
+    
+model1_7(num_epochs=100, chunks=9)
+
 
